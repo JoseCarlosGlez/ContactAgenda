@@ -4,7 +4,7 @@ import { contactRoutes } from '../routes/crmRoutes'
 import { userRoutes } from '../routes/userRoutes';
 import  mongoose from 'mongoose';
 import cors, { CorsOptions } from 'cors'
-import { whiteList, mongoURL } from '../config/config';
+import { whiteList, mongoURL, key } from '../config/config';
 
 class App {
     public app =Express();
@@ -34,6 +34,7 @@ class App {
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({ extended: false }))
         this.app.use(cors(this.CorsOption))
+        this.app.set('llave',key)
     }
 
 

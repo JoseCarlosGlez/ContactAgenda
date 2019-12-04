@@ -4,55 +4,54 @@ import { Request, Response } from 'express';
 
 export class ContactController {
 
-    public addNewController(req: Request, res: Response) {
+    async addNewController(req: Request, res: Response) {
         let newContact = new Contact(req.body);
 
-        newContact.save((err, Contact) => {
-            if (err) {
-                res.send(err)
-            }
-
-            res.json(Contact)
-        })
-
-
+        await newContact.save().then((Contact) => {
+            return res.status(200).json({
+                success: true, message: 'User Created', newContact: Contact
+            })
+        }).catch((err) => res.status(400).json({ success: false, message: err }))
     }
 
-    public getContacts(req: Request, res: Response) {
+    async getContacts(req: Request, res: Response) {
+        if (!req.params.userId) return res.status(404).json({ success: false, message: 'User id is required' })
 
-        const idUser:string = req.body.user
+        await Contact.find({ 'user': req.params.userId })
+            .populate('user')
+            .exec().then((Contacts) => {
+                if (!Contact) return res.status(400).json({ success: false, message: 'This users has no contacts' })
 
-        Contact.find({'user':idUser})
-                .populate('user')
-                .exec((err, Contact) => {
-            if (err) {
-              return  res.send(err)
-            }
-
-          return  res.json(Contact);
-        })
+                return res.status(200).json({ success: true, Contacts })
+            }).catch((err) => res.status(400).json({ success: false, message: err }))
     }
 
-    public getContactWithID(req: Request, res: Response) {
 
-        Contact.findById(req.params.contactId, (err, Contact) => {
-            if (err) {
-                res.send(err)
-            }
-            res.json(Contact)
-        })
+    async getContactWithName(req: Request, res: Response) {
+        await Contact.find({ firstName: req.params.contactName })
+            .then((Contact) => {
+                if (!Contact) return res.status(400).json({ success: false, message: 'Contact not found' })
 
+                return res.status(200).json({ success: true, Contact })
+
+            }).catch((err) => res.status(400).json({ success: false, message: err }))
     }
+
+
+    async  getContactWithEmail(req: Request, res: Response) {
+        await Contact.find({ email: req.params.contactEmail }).then((Contact) => {
+            if (!Contact) return res.status(400).json({ success: false, message: 'Contact not found' })
+            return res.status(200).json({ success: true, Contact })
+
+        }).catch((err) => res.status(400).json({ success: false, message: err }))
+    }
+
 
 
 
     async updateContact(req: Request, res: Response) {
-
-        let id = req.params.contactId;
-
-        let fields = req.body
-
-        let contactUpdate = await Contact.findOneAndUpdate({ '_id': id }, {
+        const fields = req.body
+        await Contact.findOneAndUpdate({ '_id': req.params.contactId }, {
             "$set": {
                 "firstName": fields.firstName,
                 "lastName": fields.lastName,
@@ -60,19 +59,19 @@ export class ContactController {
                 "company": fields.company,
                 "phone": fields.phone
             }
-        }, { new: true });
-
-        res.json({
-            contactUpdate
-        })
-
-
+        }, { new: true }).then((ContactUpdate) => {
+            if (!ContactUpdate) return res.status(400).json({ success: false, message: 'User not found' })
+            return res.status(200).json({ success: true, message: 'User successfully updated', ContactUpdate })
+        }).catch((err) => res.status(400).json({ success: false, message: err }))
     }
 
 
 
-    deleteContact(req: Request, res: Response) {
-
+    async deleteContact(req: Request, res: Response) {
+        await Contact.findByIdAndDelete(req.params.contactId).then((contact) => {
+            if (!contact) return res.status(400).json({ success: false, message: 'The contact could not be deleted' });
+            return res.status(200).json({ success: true, message: 'Contact removed' })
+        }).catch((err) => res.status(400).json({ success: false, message: err }))
     }
 
 

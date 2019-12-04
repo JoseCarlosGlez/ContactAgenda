@@ -2,13 +2,16 @@ import { Request, Response } from 'express';
 import User from '../models/userModel'
 import bcrypt from 'bcrypt';
 
+import jwt from 'jsonwebtoken'
+import { key } from '../config/config';
+import { LoginUser } from '../interface/interfaces';
+
 
 
 export class Security {
 
     public signUp(req: Request, res: Response) {
 
-        console.log('x')
 
         if (req.body.password == null || req.body.username == null) {
             return res.status(401).json({
@@ -57,7 +60,7 @@ export class Security {
         let password = req.body.password;
 
 
-        User.findOne({'email':userEmail},(err,user:any)=>{
+        User.findOne({'email':userEmail},(err,user:LoginUser)=>{
 
 
             if(err){
@@ -73,16 +76,25 @@ export class Security {
 
             if(!bcrypt.compareSync(password,user.password)){
 
-              return res.status(400).json({
+                
+
+                
+                return res.status(400).json({
                     success:false,
-                    message:'Login incorrect'
+                    message:'Login incorrect',
                 })
             }
-
-
-           return res.status(200).json({
+            const payload:any={
+                nombre:userEmail,
+                password:user.password
+            }
+            
+            const token= jwt.sign(payload,key,{expiresIn:'24h'})
+            delete user.password;
+            return res.status(200).json({
                 success:true,
                 message:'Login successful',
+                token,   
                 user
             })
 
